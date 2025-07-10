@@ -1,5 +1,6 @@
 package yangfentuozi.hostsfeat;
 
+import static yangfentuozi.hostsfeat.Global.IPV6;
 import static yangfentuozi.hostsfeat.Global.TIMEOUT;
 
 import android.system.Os;
@@ -35,8 +36,8 @@ public class Main {
             if (Objects.equals(arg, "--help")) {
                 help = true;
                 break;
-            } else if (arg.startsWith("--origin-hosts=")) {
-                originHosts = new File(arg.substring(15));
+            } else if (arg.startsWith("--origin=")) {
+                originHosts = new File(arg.substring(9));
                 if (!originHosts.exists()) {
                     System.err.printf("Error: origin hosts file: '%s' doesn't exist!\n", originHosts.getPath());
                     System.exit(1);
@@ -45,17 +46,17 @@ public class Main {
                     System.err.printf("Error: origin hosts file: '%s' cannot be a directory!\n", originHosts.getPath());
                     System.exit(1);
                 }
-            } else if (arg.startsWith("--output-hosts=")) {
-                outputHosts = new File(arg.substring(15));
-            } else if (arg.startsWith("--domain-config=")) {
+            } else if (arg.startsWith("--output=")) {
+                outputHosts = new File(arg.substring(9));
+            } else if (arg.startsWith("--domain=")) {
                 if (arg.contains(":")) {
-                    for (String config : arg.substring(16).split(":")) {
+                    for (String config : arg.substring(9).split(":")) {
                         File configFile = new File(config);
                         if (configFile.exists() && configFile.isFile())
                             domainConfigs.add(configFile);
                     }
                 } else {
-                    File config = new File(arg.substring(16));
+                    File config = new File(arg.substring(9));
                     if (!config.exists()) {
                         System.err.printf("Error: domain config file/dir: '%s' doesn't exist!\n", config.getPath());
                         System.exit(1);
@@ -72,8 +73,8 @@ public class Main {
                         }
                     }
                 }
-            } else if (arg.startsWith("--dns-config=")) {
-                dnsConfig = new File(arg.substring(13));
+            } else if (arg.startsWith("--dns=")) {
+                dnsConfig = new File(arg.substring(6));
                 if (!dnsConfig.exists()) {
                     System.err.printf("Error: dns config file: '%s' doesn't exist!\n", dnsConfig.getPath());
                     System.exit(1);
@@ -82,18 +83,25 @@ public class Main {
                     System.err.printf("Error: dns config file: '%s' cannot be a directory!\n", dnsConfig.getPath());
                     System.exit(1);
                 }
+            } else if (arg.startsWith("--timeout=")) {
+                TIMEOUT = Integer.parseInt(arg.substring(10));
+            } else if (arg.equals("--ipv6")) {
+                IPV6 = true;
             }
         }
         if (help || outputHosts == null || dnsConfig == null || domainConfigs.isEmpty()) {
             System.err.print("""
-                    Usage: this [--origin-hosts=ORIGIN_HOSTS] --output-hosts=OUTPUT_HOSTS --domain-config=DOMAIN_CONFIG --dns-config=DNS_CONFIG
+                    Usage: this [--origin=] --output= --domain= --dns= [--timeout=] [--ipv6]
                     Description:
-                        ORIGIN_HOSTS:   原 hosts 文件，要求可读
-                        OUTPUT_HOSTS:   将输出的处理好的 hosts 文件，如已存在，将覆写
-                        DOMAIN_CONFIG:  待处理域名列表，可以是一个文件夹、一个或多个 txt 文件。
-                                        单个文件请用 ':' 隔开
-                                        作文件夹时将读取其后缀为 .txt 的所有子文件作为配置文件
-                        DNS_CONFIG:     DNS 服务器列表，只能为一个 txt 文件
+                        --origin:   原 hosts 文件，要求可读
+                        --output:   将输出的处理好的 hosts 文件，如已存在，将覆写
+                        --domain:   待处理域名列表，可以是一个文件夹、一个或多个 txt 文件。
+                                    单个文件请用 ':' 隔开
+                                    作文件夹时将读取其后缀为 .txt 的所有子文件作为配置文件
+                        --dns:      DNS 服务器列表，只能为一个 txt 文件
+                        --timeout:  超时时间，单位毫秒，默认为 3000
+                        --ipv6:     有该选项时将查询 IPv6 地址
+                    
                         配置文件中的 DNS 服务器/待处理域名 均使用 ',' 隔开，多行不必额外使用 ','
                     """);
             System.exit(1);

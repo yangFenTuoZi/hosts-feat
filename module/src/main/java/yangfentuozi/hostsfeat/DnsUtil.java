@@ -1,5 +1,6 @@
 package yangfentuozi.hostsfeat;
 
+import static yangfentuozi.hostsfeat.Global.IPV6;
 import static yangfentuozi.hostsfeat.Global.TIMEOUT;
 
 import java.io.ByteArrayOutputStream;
@@ -16,12 +17,31 @@ import java.util.Random;
 public class DnsUtil {
     // DNS查询类型 - A记录
     private static final int DNS_QUERY_TYPE_A = 1;
+    // DNS查询类型 - AAAA记录
+    private static final int DNS_QUERY_TYPE_AAAA = 28;
     // DNS查询类 - IN (Internet)
     private static final int DNS_QUERY_CLASS_IN = 1;
     // DNS端口
     private static final int DNS_PORT = 53;
 
     public static List<String> queryDns(String domain, String dnsServer) throws IOException {
+        if (IPV6) {
+            // 查询AAAA记录
+            List<String> ipv6List = queryDnsByType(domain, dnsServer, DNS_QUERY_TYPE_AAAA);
+            // 查询A记录
+            List<String> ipv4List = queryDnsByType(domain, dnsServer, DNS_QUERY_TYPE_A);
+            // 合并，IPv6优先
+            List<String> result = new ArrayList<>();
+            result.addAll(ipv6List);
+            result.addAll(ipv4List);
+            return result;
+        } else {
+            // 只查A记录
+            return queryDnsByType(domain, dnsServer, DNS_QUERY_TYPE_A);
+        }
+    }
+
+    private static List<String> queryDnsByType(String domain, String dnsServer, int queryType) throws IOException {
         // 生成随机ID
         short id = (short) new Random().nextInt(32767);
 
@@ -44,7 +64,7 @@ public class DnsUtil {
             dos.write(part.getBytes());
         }
         dos.writeByte(0);            // 结束域名部分
-        dos.writeShort(DNS_QUERY_TYPE_A);  // 查询类型: A记录
+        dos.writeShort(queryType);  // 查询类型: A记录或AAAA记录
         dos.writeShort(DNS_QUERY_CLASS_IN); // 查询类: IN
 
         byte[] dnsQuery = baos.toByteArray();
@@ -64,10 +84,10 @@ public class DnsUtil {
         socket.close();
 
         // 解析响应
-        return parseDnsResponse(responsePacket.getData(), domain);
+        return parseDnsResponse(responsePacket.getData());
     }
 
-    private static List<String> parseDnsResponse(byte[] response, String domain) throws IOException {
+    private static List<String> parseDnsResponse(byte[] response) throws IOException {
         List<String> ips = new ArrayList<>();
         ByteBuffer buffer = ByteBuffer.wrap(response);
 
@@ -98,9 +118,8 @@ public class DnsUtil {
             buffer.getInt();   // 跳过TTL
             int dataLength = buffer.getShort() & 0xFFFF;
 
-            if (type == DNS_QUERY_TYPE_A && dataLength == 4) {
-                // A记录且数据长度为4字节(IPv4地址)
-                byte[] ipBytes = new byte[4];
+            if ((type == DNS_QUERY_TYPE_A || type == DNS_QUERY_TYPE_AAAA) && (dataLength == 4 || dataLength == 16)) {
+                byte[] ipBytes = new byte[dataLength];
                 buffer.get(ipBytes);
                 ips.add(InetAddress.getByAddress(ipBytes).getHostAddress());
             } else {
