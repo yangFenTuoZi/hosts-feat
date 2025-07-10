@@ -1,0 +1,106 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace = "yangfentuozi.hostsfeat"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "yangfentuozi.hostsfeat"
+        minSdk = 26
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    buildTypes {
+        debug {
+            multiDexEnabled false
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+}
+
+ext {
+    gitCommitId = 'git rev-parse --short HEAD'.execute([], project.rootDir).text.trim()
+    gitCommitCount = Integer.parseInt('git rev-list --count HEAD'.execute([], project.rootDir).text.trim())
+
+    moduleVersion = gitCommitId
+    moduleVersionCode = gitCommitCount
+}
+
+def outDir = file("$rootDir/out")
+
+afterEvaluate {
+    def isIDE = properties.containsKey('android.injected.invoked.from.ide')
+    if (isIDE) {
+        println("Invoked from IDE")
+    } else {
+        println("Invoked from command line")
+    }
+
+    android.applicationVariants.all { variant ->
+        def variantCapped = variant.name.capitalize()
+        def buildTypeCapped = variant.getBuildType().getName().capitalize()
+        def buildTypeLowered = variant.getBuildType().getName().toLowerCase()
+
+        def zipName = "hostsFeat-${moduleVersion}-${buildTypeLowered}.zip"
+        def magiskDir = file("$outDir/${buildTypeLowered}")
+
+        tasks.getByName("pre${variantCapped}Build").dependsOn(":module:assemble${buildTypeCapped}")
+
+        task("prepareMagiskFiles${variantCapped}", type: Sync) {
+            dependsOn("assemble$variantCapped")
+
+            def templatePath = "$rootDir/template/magisk_module"
+
+            into magiskDir
+            from(templatePath) {
+                exclude 'module.prop'
+            }
+            from(templatePath) {
+                include 'module.prop'
+                expand([
+                        id         : "hostsFeat",
+                        name       : "hosts 自动更新",
+                        version    : moduleVersion,
+                        versionCode: moduleVersionCode.toString(),
+                        author     : "yangFenTuoZi",
+                        description: "自动选择最佳 IP 并更新 hosts 文件",
+                        updateJson : ""
+                ])
+                filter(FixCrLfFilter.class,
+                        eol: FixCrLfFilter.CrLf.newInstance("lf"))
+            }
+            from((buildTypeLowered == "release") ?
+                    "$buildDir/intermediates/dex/${variant.name}/minify${variantCapped}WithR8" :
+                    "$buildDir/intermediates/dex/${variant.name}/mergeDex$variantCapped") {
+                include 'classes.dex'
+                rename { 'core.dex' }
+            }
+            from("$buildDir/intermediates/stripped_native_libs/${variant.name}/out/lib") {
+                into 'lib'
+            }
+        }
+
+        task("zip${variantCapped}", type: Zip) {
+            dependsOn("prepareMagiskFiles${variantCapped}")
+            from magiskDir
+            archiveFileName = zipName
+            destinationDirectory = outDir
+        }
+
+        variant.assembleProvider.get().finalizedBy("zip${variantCapped}")
+    }
+}
