@@ -1,11 +1,29 @@
 package yangfentuozi.hostsfeat;
 
+import static yangfentuozi.hostsfeat.Global.TIMEOUT;
+
 import android.system.Os;
 import android.system.OsConstants;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class Main {
     public static void main(String[] args) {
@@ -150,7 +168,7 @@ public class Main {
                 ip = "#";
             }
             try {
-                fw.write(String.format("%-20s%s", ip, domain));
+                fw.write(String.format("%-20s%s\n", ip, domain));
             } catch (Exception e) {
                 System.err.println("Error while writing output hosts file");
                 throw new RuntimeException(e);
@@ -201,7 +219,7 @@ public class Main {
         for (String ip : ips) {
             try {
                 long startTime = System.currentTimeMillis();
-                boolean reachable = InetAddress.getByName(ip).isReachable(2000);
+                boolean reachable = InetAddress.getByName(ip).isReachable(TIMEOUT);
                 long latency = System.currentTimeMillis() - startTime;
 
                 if (reachable) {
@@ -221,22 +239,16 @@ public class Main {
     public static List<String> filterReachableDnsServers(List<String> dnsServers) {
         List<String> reachableServers = new ArrayList<>();
 
-        for (String server : dnsServers) {
-            try {
-                if (isReachable(server)) {
-                    reachableServers.add(server);
-                }
-            } catch (Exception e) {
-                System.err.println("Error checking DNS server " + server + ": " + e.getMessage());
-            }
-        }
+        for (String server : dnsServers)
+            if (isReachable(server))
+                reachableServers.add(server);
 
         return reachableServers;
     }
 
     private static boolean isReachable(String host) {
         try {
-            return InetAddress.getByName(host).isReachable(2000);
+            return InetAddress.getByName(host).isReachable(TIMEOUT);
         } catch (Exception e) {
             return false;
         }

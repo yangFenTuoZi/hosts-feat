@@ -1,0 +1,9 @@
+#!/system/bin/sh
+MODDIR=${0%/*}
+DEX="$MODDIR/core.dex"
+if [ ! -f $DEX ]; then
+    echo "Error: $DEX not found!"
+    exit 1
+fi
+
+exec /system/bin/app_process -Djava.class.path=$DEX / yangfentuozi.hostsfeat.Main "$@"

@@ -54,13 +54,10 @@ afterEvaluate {
 
     android.applicationVariants.all { variant ->
         def variantCapped = variant.name.capitalize()
-        def buildTypeCapped = variant.getBuildType().getName().capitalize()
         def buildTypeLowered = variant.getBuildType().getName().toLowerCase()
 
         def zipName = "hostsFeat-${moduleVersion}-${buildTypeLowered}.zip"
         def magiskDir = file("$outDir/${buildTypeLowered}")
-
-        tasks.getByName("pre${variantCapped}Build").dependsOn(":module:assemble${buildTypeCapped}")
 
         task("prepareMagiskFiles${variantCapped}", type: Sync) {
             dependsOn("assemble$variantCapped")

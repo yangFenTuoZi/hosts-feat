@@ -1,9 +1,17 @@
 package yangfentuozi.hostsfeat;
 
-import java.io.*;
-import java.net.*;
+import static yangfentuozi.hostsfeat.Global.TIMEOUT;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class DnsUtil {
     // DNS查询类型 - A记录
@@ -12,8 +20,6 @@ public class DnsUtil {
     private static final int DNS_QUERY_CLASS_IN = 1;
     // DNS端口
     private static final int DNS_PORT = 53;
-    // 超时时间(毫秒)
-    private static final int DNS_TIMEOUT = 2000;
 
     public static List<String> queryDns(String domain, String dnsServer) throws IOException {
         // 生成随机ID
@@ -45,7 +51,7 @@ public class DnsUtil {
 
         // 发送DNS查询
         DatagramSocket socket = new DatagramSocket();
-        socket.setSoTimeout(DNS_TIMEOUT);
+        socket.setSoTimeout(TIMEOUT);
 
         InetAddress dnsAddress = InetAddress.getByName(dnsServer);
         DatagramPacket packet = new DatagramPacket(dnsQuery, dnsQuery.length, dnsAddress, DNS_PORT);
