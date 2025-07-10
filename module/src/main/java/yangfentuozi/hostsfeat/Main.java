@@ -2,6 +2,7 @@ package yangfentuozi.hostsfeat;
 
 import static yangfentuozi.hostsfeat.Global.IPV6;
 import static yangfentuozi.hostsfeat.Global.TIMEOUT;
+import static yangfentuozi.hostsfeat.Ping.ping;
 
 import android.system.Os;
 import android.system.OsConstants;
@@ -15,7 +16,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -200,7 +200,7 @@ public class Main {
             return null;
         }
         System.out.println(domain + " -> " + Arrays.toString(allIps.toArray()));
-        Map<String, Long> ipPingResults = pingAllIps(allIps);
+        Map<String, Integer> ipPingResults = pingAllIps(allIps);
         if (ipPingResults.isEmpty()) return null;
         return Collections.min(ipPingResults.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
@@ -221,18 +221,16 @@ public class Main {
         return ips;
     }
 
-    private static Map<String, Long> pingAllIps(Set<String> ips) {
-        Map<String, Long> results = new HashMap<>();
+    private static Map<String, Integer> pingAllIps(Set<String> ips) {
+        Map<String, Integer> results = new HashMap<>();
 
         for (String ip : ips) {
             try {
-                long startTime = System.currentTimeMillis();
-                boolean reachable = InetAddress.getByName(ip).isReachable(TIMEOUT);
-                long latency = System.currentTimeMillis() - startTime;
+                int pingTime = ping(ip);
 
-                if (reachable) {
-                    results.put(ip, latency);
-                    System.out.println("Ping " + ip + " - " + latency + "ms");
+                if (pingTime != -1) {
+                    results.put(ip, pingTime);
+                    System.out.println("Ping " + ip + " - " + pingTime + "ms");
                 } else {
                     System.err.println("Ping failed for " + ip + ": Host not reachable");
                 }
@@ -255,11 +253,7 @@ public class Main {
     }
 
     private static boolean isReachable(String host) {
-        try {
-            return InetAddress.getByName(host).isReachable(TIMEOUT);
-        } catch (Exception e) {
-            return false;
-        }
+        return ping(host) != -1;
     }
 
     public static int BUFFER_SIZE = (int) Os.sysconf(OsConstants._SC_PAGESIZE);

@@ -1,9 +1,10 @@
 #!/system/bin/sh
 MODDIR=${0%/*}
 DEX="$MODDIR/core.dex"
+LIBRARY_PATH="$MODDIR/lib/$(getprop ro.product.cpu.abi)"
 if [ ! -f $DEX ]; then
     echo "Error: $DEX not found!"
     exit 1
 fi
 
-exec /system/bin/app_process -Djava.class.path=$DEX / yangfentuozi.hostsfeat.Main "$@"
+exec /system/bin/app_process -Djava.class.path=$DEX -Djava.library.path=$LIBRARY_PATH / yangfentuozi.hostsfeat.Main "$@"
