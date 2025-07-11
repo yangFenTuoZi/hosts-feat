@@ -5,6 +5,5 @@ project("hostsfeat")
 add_library(ping SHARED
         ping.c)
 
-target_link_libraries(ping
-    android
-    log)
+add_library(nslookup SHARED
+        nslookup.c)

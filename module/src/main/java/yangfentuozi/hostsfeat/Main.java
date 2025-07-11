@@ -211,7 +211,7 @@ public class Main {
         for (String dnsServer : dnsServers) {
             try {
                 // 使用自定义DNS查询方法
-                List<String> resolvedIps = DnsUtil.queryDns(domain, dnsServer);
+                List<String> resolvedIps = NSLookup.lookup(domain, dnsServer);
                 ips.addAll(resolvedIps);
             } catch (Exception e) {
                 System.err.println("DNS query failed for server " + dnsServer + ": " + e.getMessage());
